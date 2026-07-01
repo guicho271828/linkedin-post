@@ -1,0 +1,99 @@
+Apparently, researchers these days all engage in this curious practice known as "a personal branding exercise disguised as a LinkedIn science longpost."
+Being someone of a less hype-oriented disposition, I finally decided to attempt this custom and record my journey.
+
+Imagine millions of customer complaints; an industry-scale workload.
+Your task: Figure out which one to handled first,
+or what does a typical complaint look like,
+or how many groups of complaints exist.
+
+How do you solve them with LLMs?
+Just dump them all in one big context and hope for the best?
+It fails because long context models "rots" [1].
+We tested ourselves: Find the max over N=10^3 random integers.
+(Imagine each number was a customer complaint instead.)
+In random simulations,
+the numbers returned by Qwen3-32B ranked ~42nd/1000th,
+taking ~100sec per list --- mediocre for such a simple task.
+Think tags did nothing; x10 slower yet the accuracy stays.
+With N=10^4, it exceeded the 1hr time limit due to Transformer's O(N^2) runtime.
+The "dump everything" strategy clearly does not scale.
+
+Curiously, when N=100, it was much more accurate: Answers ranked 1.42-th on average.
+What it shows is that *LLMs have no algorithmic thinking*.
+If it did,
+it would split N=10^3 list into N=100 sublists, find max of each, then find the global max.
+With recursions and parallelism, this tournament-based maximum is O(log N).
+*Reasoning is a fundamentally algorithmic task with task decomposition.*
+It enables runtime analysis which is impossible in free-form generation.
+
+This led us to ask: what if we use LLMs inside algorithms, not as general reasoners?
+We call this paradigm Verbalized Algorithm (VA): Classical algorithms remastered for LLMs.
+We keep their control flow (for/if/recursion) intact,
+but replace their atomic operations with an LLM oracle that answers simple, single-step query: yes-no, or multiple-choice questions.
+VAs give LLMs runtime guarantees;
+O(log n) parallel tournament processed 10000 numbers in ~56sec with ALMOST NO mistakes; Answers ranked ~1.29th/10000th.
+
+The big picture:
+VA answers a key question "How to make LLMs reason reliably?"
+Two other approaches also tackle it but
+they are neither scalable or reliable due to the lack of sound complexity analysis.
+
+Formalization translates a task into a symbolic form, solve it with a solver, then explain the output for users.
+One of its key weaknesses is the expressivity of the solver's input DSL.
+Modeling all the subtlety of the natural language in a symbolic DSL is impossible!
+
+LLM-modulo-theory (by great Prof. Subbarao Kambhampati)
+uses LLMs as a sampling distribution
+in a verifier-based rejection sampler or a feedback-based sequential Monte-Carlo.
+Can a (symbolic) verifier verify natural language?
+Will the loop stop, when (= runtime)?
+Is the solution practical (= optimal)?
+
+Other work have embedded LLMs in algorithms [2,3],
+yet we believe ours is the first general reductionist proposal toward LLM reasoning.
+Check out our paper below.
+
+https://arxiv.org/abs/2509.08150
+
+[1] https://arxiv.org/abs/2404.06654
+[2] https://arxiv.org/abs/2404.11833
+[3] https://arxiv.org/abs/2506.04500
+[4] https://arxiv.org/abs/2509.08150
+
+
+
+Traditional computer science all employ task decomposition to scale.
+A merge sort splits the list in half, sort them individually, and combines the results.
+At the lowest level, it reduces to a simple binary comparison.
+These procedures, called algorithms, guarantee the correctness of their outputs and the average/worst-case runtime/memory.
+In contrast, the opaqueness of LLM's reasoning prevents such an analysis.
+
+We found the same phenomenon across a variety of tasks --- list sorting and submodular maximization.
+
+<!-- Or which ones are the top-10 most urgent complaints. -->
+<!-- Or to extract a set of dissimilar complaints with high urgency. -->
+
+<!-- the accurate grammar following for the language, and the semantic accuracy of the translation. -->
+<!-- Modeling all the subtlety of the natural language in a solver-oriented symbolic logic would be impossible. -->
+<!-- The grammar class (e.g., context free/sensitive) of the target language could push the limit of constraint-decoding libraries. -->
+<!-- And there is no guarantee on the semantic accuracy --- when the target language is not expressive enough, an accurate translation is impossible! -->
+
+
+<!-- The simplest example would be *sorting* or *maximization* tasks, which may use  -->
+<!-- However,  -->
+<!--  -->
+<!-- Indeed, who guarantees that each complaint would fit in 100 tokens (10^6 / 10^4)? -->
+<!-- Or 10 tokens if there are 10^5 complaints? -->
+<!--  -->
+<!-- This is  -->
+
+
+*Pros*: This keeps the original complexity results (time/memory), parallelism, or probabilistic error rate analysis.
+It also offloads multi-step reasoning from LLMs to battle-tested algorithms, so the small language models are enough!
+
+*Cons*: Many LLM calls, but they are all short queries on small models!
+
+*Examples so far*: Selection (Max, Median, Top-k), Sorting, Clustering, Submodular Maximization, Pareto-Front, Constraint Satisfaction.
+
+If you are interested, meet us at our poster session in Efficient Reasoning Workshop on 6th!
+
