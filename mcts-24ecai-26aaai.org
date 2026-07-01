@@ -1,3 +1,6 @@
+Day 2. It is said that researchers now compose such posts with the help of chatbots. I, too, shall attempt this new custom.
+At least I openly confess my inability (or unwillingness) to write one entirely by myself.
+
 Monte Carlo Tree Search (MCTS) revolutionized board games.
 AlphaGo, AlphaZero -- the results speak for themselves.
 So when people tried to apply MCTS to automated planning, the natural instinct was:
@@ -56,8 +59,12 @@ Getting this right turned a decade of underwhelming MCTS results into consistent
 
 Don't just import techniques. Import understanding.
 
+#ArtificialIntelligence #Planning #MCTS #MachineLearning #Statistics #Research
+
 Paper 1: "Scale-Adaptive Balancing of Exploration and Exploitation in Classical Planning" (ECAI 2024)
 Paper 2: "Extreme Value Monte Carlo Tree Search for Classical Planning" (AAAI 2026)
 Code: github.com/guicho271828/pyperplan-mcts
 
-#ArtificialIntelligence #Planning #MCTS #MachineLearning #Statistics #Research
+
+
+See my Day 1 post here: https://www.linkedin.com/posts/masataro-asai_apparently-researchers-these-days-all-engage-share-7477760552434360320-Du3s/
