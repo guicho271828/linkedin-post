@@ -1,59 +1,58 @@
-Day 2. It is said that researchers now compose such posts with the help of chatbots. I, too, shall attempt this new custom.
-At least I openly confess my inability (or unwillingness) to write one entirely by myself.
+Day 2. It is said that researchers now compose such posts with the help of chatbots.
+I, too, shall attempt this new custom.
+At least I openly confess my laziness in doing so.
 
 Monte Carlo Tree Search (MCTS) revolutionized board games.
 AlphaGo, AlphaZero -- the results speak for themselves.
-So when people tried to apply MCTS to automated planning, the natural instinct was:
+So when people tried to apply MCTS to classical planning, the natural instinct was:
 just use the same algorithm. UCB1 worked for Go, it should work for planning, right?
 
-Wrong. And this is a cautionary tale about blindly importing ML techniques into new domains without understanding the theory.
+Wrong. And this is a cautionary tale about blindly importing ML techniques into new domains without understanding it.
 
 Here's the issue.
-UCB1 -- the bandit algorithm at the heart of UCT/MCTS -- assumes rewards are bounded in a known, fixed range [0, c] shared across all arms.
+UCB1 assumes rewards are bounded in a known, fixed range [0, c].
 In Go, this is fine: outcomes are +1/-1 (win/loss).
 But in classical planning, the "rewards" are heuristic cost-to-go estimates.
 These are non-negative, unbounded, vary wildly across different parts of the search tree,
 and their range is unknown a priori. Every single assumption of UCB1 is violated.
+Does the underlying bandit theory even apply here?
 
-The result? MCTS for planning never consistently outperformed even the simplest baseline -- Greedy Best-First Search (GBFS).
-For over a decade, people tweaked implementations without asking:
-does the underlying bandit theory even apply here?
-
-In our ECAI 2024 paper, we showed that it doesn't.
-We proposed UCB1-Normal2, a Gaussian bandit that adapts its exploration rate to the estimated variance of each subtree.
-The resulting algorithm was the first MCTS variant to consistently outperform GBFS across diverse planning domains.
+In ECAI 2024, we showed otherwise.
+MCTS never consistently outperformed even the simplest baseline -- Greedy Best-First Search (GBFS).
+To fix this,
+we proposed UCB1-Normal2, a Gaussian bandit that adapts its exploration rate to the estimated variance of each subtree.
+The result was the first MCTS variant to consistently outperform GBFS across diverse planning domains.
 
 But we weren't done. Two theoretical gaps remained:
 
-1. The Gaussian distribution has support (-inf, +inf), but heuristic values are non-negative. This is still an over-specification.
+1. The Gaussian distribution has support (-∞, +∞), but costs are non-negative. An under-specification.
 2. Why does Full Bellman backup (taking the minimum) work?
-   The original MCTS papers used averaging (Monte Carlo backup) and just noted that the minimum was "rather odd" for planning -- without bandit-theoretic justification.
+   People keep saying, "taking the average (Monte Carlo backup) is 'rather odd' for planning", without justification.
 
-In our AAAI 2026 paper, we resolved both issues by introducing Extreme Value Theory (EVT)
+In AAAI 2026, we resolved both issues with Extreme Value Theory (EVT)
 -- the statistical framework for modeling extrema rather than averages.
 While most of ML relies on the Central Limit Theorem (averages converge to Gaussians),
-planning is fundamentally about finding the minimum cost path. We need statistics of extremes.
+planning is fundamentally about finding the minimum cost: statistics of extremes.
 
-Using Peaks-Over-Threshold EVT,
-we showed that the tail behavior of heuristic values follows a Generalized Pareto distribution with a finite upper bound (short-tailed).
-This directly justifies the use of Full Bellman backup:
-the GP's upper support parameter estimates the minimum heuristic in a subtree,
+We showed that the tail behavior of cost-to-go follows a Generalized Pareto distribution.
+This directly justifies Full Bellman backup:
+the GP's upper support parameter estimates the minimum cost in a subtree,
 and values below the threshold are excluded -- including dead-ends, which naturally fall outside the tail model.
 
-The resulting algorithm, GUCT-Uniform, outperformed GBFS by 67.8 instances, GUCT-Normal2 by 23.4,
-the state-of-the-art diversified search Softmin-Type(h) by 33.2, and Max-k bandits (a similarly-named but fundamentally different framework) by over 300 instances.
+The result, GUCT-Uniform, outperformed GBFS by 67.8 instances, GUCT-Normal2 by 23.4,
+and Max-k bandits by over 300 instances.
 
-The broader lesson: statistical thinking matters. When you apply an algorithm from one domain to another, you must ask:
-- What distributional assumptions does this method make?
+The broader lesson: When you apply an algorithm from one domain to another, you must ask:
+- What distributional assumptions does it make?
 - Do they hold in my new setting?
-- What is the right model for my problem?
+- What is the right assumption for my problem?
 
-In planning, the right model isn't about averages (CLT/Gaussian) -- it's about extremes (EVT/Generalized Pareto).
-Getting this right turned a decade of underwhelming MCTS results into consistent state-of-the-art performance.
+In planning, the right model isn't averages (CLT/Gaussian) -- it's extremes (EVT/Generalized Pareto).
+Getting this right turned a decade of underwhelming MCTS results into state-of-the-art performance.
 
 Don't just import techniques. Import understanding.
 
-#ArtificialIntelligence #Planning #MCTS #MachineLearning #Statistics #Research
+#ArtificialIntelligence #Planning #MCTS
 
 Paper 1: "Scale-Adaptive Balancing of Exploration and Exploitation in Classical Planning" (ECAI 2024)
 Paper 2: "Extreme Value Monte Carlo Tree Search for Classical Planning" (AAAI 2026)
