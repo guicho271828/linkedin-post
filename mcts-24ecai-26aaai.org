@@ -16,12 +16,12 @@ These are non-negative, unbounded, vary wildly across different parts of the sea
 and their range is unknown a priori. Every single assumption of UCB1 is violated.
 
 The result? MCTS for planning never consistently outperformed even the simplest baseline -- Greedy Best-First Search (GBFS).
-For over a decade, people tweaked implementations, added ad hoc normalizations, etc., without asking:
+For over a decade, people tweaked implementations without asking:
 does the underlying bandit theory even apply here?
 
 In our ECAI 2024 paper, we showed that it doesn't.
 We proposed UCB1-Normal2, a Gaussian bandit that adapts its exploration rate to the estimated variance of each subtree.
-The resulting algorithm, GUCT-Normal2, was the first MCTS variant to consistently outperform GBFS across diverse planning domains.
+The resulting algorithm was the first MCTS variant to consistently outperform GBFS across diverse planning domains.
 
 But we weren't done. Two theoretical gaps remained:
 
@@ -32,7 +32,7 @@ But we weren't done. Two theoretical gaps remained:
 In our AAAI 2026 paper, we resolved both issues by introducing Extreme Value Theory (EVT)
 -- the statistical framework for modeling extrema rather than averages.
 While most of ML relies on the Central Limit Theorem (averages converge to Gaussians),
-planning search is fundamentally about finding the minimum cost path. We need statistics of extremes, not statistics of averages.
+planning is fundamentally about finding the minimum cost path. We need statistics of extremes.
 
 Using Peaks-Over-Threshold EVT,
 we showed that the tail behavior of heuristic values follows a Generalized Pareto distribution with a finite upper bound (short-tailed).
@@ -45,8 +45,8 @@ the state-of-the-art diversified search Softmin-Type(h) by 33.2, and Max-k bandi
 
 The broader lesson: statistical thinking matters. When you apply an algorithm from one domain to another, you must ask:
 - What distributional assumptions does this method make?
-- Do those assumptions hold in my new setting?
-- What is the right statistical model for my problem?
+- Do they hold in my new setting?
+- What is the right model for my problem?
 
 In planning, the right model isn't about averages (CLT/Gaussian) -- it's about extremes (EVT/Generalized Pareto).
 Getting this right turned a decade of underwhelming MCTS results into consistent state-of-the-art performance.
