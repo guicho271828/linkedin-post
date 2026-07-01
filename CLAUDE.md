@@ -11,7 +11,7 @@ This directory is used for drafting LinkedIn posts summarizing academic papers.
 ## Post Requirements
 
 - Follow the narrative structure from the papers' introductions
-- Keep posts under 5000 characters
+- Keep posts under 4000 characters
 - Do not use em-dashes (use -- instead)
 - Store posts in .org files
-- Break lines around 100 characters. When you break lines, avoid breaking words, try to do it after period, comma, or large clauses such as which, when, where. 
+- Break lines around 100 characters. When you break lines, avoid breaking words, try to do it after period, comma, or large clauses such as which, when, where.
