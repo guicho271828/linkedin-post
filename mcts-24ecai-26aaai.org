@@ -16,12 +16,11 @@ These are non-negative, unbounded, vary wildly across different parts of the sea
 and their range is unknown a priori. Every single assumption of UCB1 is violated.
 
 The result? MCTS for planning never consistently outperformed even the simplest baseline -- Greedy Best-First Search (GBFS).
-For over a decade, people tweaked implementations, added ad hoc normalizations, and combined enhancements without asking:
+For over a decade, people tweaked implementations, added ad hoc normalizations, etc., without asking:
 does the underlying bandit theory even apply here?
 
 In our ECAI 2024 paper, we showed that it doesn't.
 We proposed UCB1-Normal2, a Gaussian bandit that adapts its exploration rate to the estimated variance of each subtree.
-Its regret bound improves as the variance estimate becomes accurate -- and in deterministic planning, estimated variance converges to the true variance.
 The resulting algorithm, GUCT-Normal2, was the first MCTS variant to consistently outperform GBFS across diverse planning domains.
 
 But we weren't done. Two theoretical gaps remained:
@@ -40,11 +39,6 @@ we showed that the tail behavior of heuristic values follows a Generalized Paret
 This directly justifies the use of Full Bellman backup:
 the GP's upper support parameter estimates the minimum heuristic in a subtree,
 and values below the threshold are excluded -- including dead-ends, which naturally fall outside the tail model.
-
-We focused on the Uniform distribution U(l, u) -- a special case of GP -- and proposed UCB1-Uniform.
-Its exploration term is scaled by the estimated support range (max - min of observed samples), making it simultaneously:
-- Spread-aware: wider ranges mean more uncertainty, warranting more exploration
-- Plateau-escaping: it focuses search on one promising region rather than distributing effort across equally uninformative plateaus
 
 The resulting algorithm, GUCT-Uniform, outperformed GBFS by 67.8 instances, GUCT-Normal2 by 23.4,
 the state-of-the-art diversified search Softmin-Type(h) by 33.2, and Max-k bandits (a similarly-named but fundamentally different framework) by over 300 instances.
