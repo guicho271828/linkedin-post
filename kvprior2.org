@@ -1,13 +1,13 @@
 Why does "stitching together" cached documents hurt RAG accuracy -- and can we fix it for free?
 
-Retrieval-Augmented Generation (RAG) is everywhere now, but it has an expensive
-habit: every time a user query comes in, the LLM has to re-process (prefill) the
+Retrieval-Augmented Generation (RAG) is everywhere now, but it is expensive:
+every time a user query comes in, the LLM has to re-process (prefill) the
 retrieved documents before it can even start generating an answer. Since the
 same documents get retrieved again and again across different queries, the
 obvious fix is to precompute and cache their KV representations once, then just
 reuse them.
 
-The problem: naively concatenating individually-prefilled KV caches tanks
+The problem: naively concatenating individually-prefilled KV caches harms
 accuracy. The usual explanation is "attention sinks" and lost cross-document
 attention, and the usual fixes are expensive -- recomputing parts of the cache
 online, fine-tuning the model, or training extra "link" tokens to glue documents
