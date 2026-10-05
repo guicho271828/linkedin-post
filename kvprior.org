@@ -1,0 +1,70 @@
+Retrieval-Augmented Generation (RAG) is now standard: fetch documents, put them in the prompt, answer.
+Its major bottleneck is prefill, i.e., computing the KV cache of all the retrieved documents
+before the first token comes out.
+
+But the same documents are retrieved again and again across many user queries.
+So why not prefill each document once, offline, store its cache, and just concatenate them later?
+
+Because transformer KV caches are prefix-dependent.
+A cache computed for "doc A at the start of the prompt" is not the same as "doc A after docs B and C".
+Naively concatenating them (no recompute) causes substantial quality degradation.
+
+Existing fixes recover the quality by recomputing some tokens at inference time,
+fine-tuning the model to produce composable caches, or learning "link tokens" between documents.
+They work, but they cost runtime or training, and the mechanism remains poorly understood.
+(What are the link tokens actually learning?)
+
+Conventional wisdom says the degradation comes from two sources:
+(A) the lost cross-attention between documents, and
+(B) position-specific artifacts baked into the cache.
+Many methods restore (A), which requires online computation.
+To our knowledge, nobody tried to directly remove (B).
+
+So we looked at the attention logits.
+Individually prefilled caches show huge "attention sink" spikes at the beginning of every document.
+A RoPE reset does not remove them, because models learn their own implicit positional encoding,
+and the BOS token leaves a boundary effect that propagates over layers.
+Even KVPacket's learned embeddings do not remove the spikes; they just absorb them.
+
+Meanwhile, in a regular full prefill, documents that are *not* at the beginning have few spikes.
+That suggests a trivially simple fix:
+
+1. Prepend a random, irrelevant prefix (sampled from the training set) to the document.
+2. Prefill, discard the prefix part, and re-rotate RoPE.
+3. Repeat with ~4-8 different prefixes and average the caches.
+
+That's it. We call it KVPrior. Offline, training-free, zero inference overhead.
+Averaging leaves only what is common across contexts, i.e., the document itself.
+The attention spikes are gone, closely resembling full prefill.
+
+Why "Prior"? Because it is a Bayesian story.
+We assume, as a prior, that retrieved documents contribute independently (a mean-field assumption).
+One may think individual prefill already computes p(doc), but it does not:
+it computes p(doc | BOS or empty prefix), which is a biased sample.
+KVPrior instead estimates the marginal over arbitrary prefixes of arbitrary lengths.
+When the prior is wrong (e.g., multi-hop reasoning),
+cache recomputation becomes the posterior update.
+
+Averaging caches is not the same as averaging output distributions, though.
+A Taylor expansion shows the gap is governed by the Hessian along the direction of prefix noise.
+We measured it: the total variation is comparable to that of FP8/INT8 quantization.
+
+Results on Llama-3.1-8B, Qwen3-4B and Granite-4.1-8B over 5 RAG benchmarks:
+- Biography / Needle-in-a-Haystack (independent documents): KVPrior nearly recovers full prefill,
+  and achieves the best accuracy-runtime Pareto front on Biography.
+- Multi-hop QA (HotpotQA, Musique, 2WikiQA): modest gains alone, on par with KVPacket
+  (trained on the entire dataset, vs. our 4-8 sampled prefixes),
+  but KVPrior + recomputation beats recomputation alone.
+- Out-of-distribution: prefixes sampled from Biography still help on other datasets,
+  while KVLink trained on Biography struggles to generalize.
+
+As few as 4 random prefixes are enough. Sometimes the boring idea wins.
+
+This also matters beyond RAG: LLM pipelines and "LLMs inside algorithms"
+constantly reuse the same strings at different positions across calls.
+
+Paper: "KVPrior: On the Surprising Effectiveness of Marginalizing KVCaches over Prefixes"
+Masataro Asai, Bo Wu, Dan Gutfreund (MIT-IBM Watson AI Lab)
+Link: TODO
+
+#LLM #RAG #KVCache #MachineLearning #BayesianStatistics
