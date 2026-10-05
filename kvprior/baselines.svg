@@ -6,7 +6,7 @@
    height="605.96503"
    id="svg2"
    sodipodi:version="0.32"
-   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
    sodipodi:docname="baselines.svg"
    inkscape:export-filename="C:\home\lisplogo_alien.png"
    inkscape:export-xdpi="258.45999"
@@ -251,7 +251,8 @@
      inkscape:window-maximized="1"
      inkscape:showpageshadow="2"
      inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1" />
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:export-bgcolor="#ffffffff" />
   <metadata
      id="metadata7">
     <rdf:RDF>
