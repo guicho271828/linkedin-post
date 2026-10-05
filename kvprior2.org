@@ -1,0 +1,61 @@
+Why does "stitching together" cached documents hurt RAG accuracy -- and can we fix it for free?
+
+Retrieval-Augmented Generation (RAG) is everywhere now, but it has an expensive
+habit: every time a user query comes in, the LLM has to re-process (prefill) the
+retrieved documents before it can even start generating an answer. Since the
+same documents get retrieved again and again across different queries, the
+obvious fix is to precompute and cache their KV representations once, then just
+reuse them.
+
+The problem: naively concatenating individually-prefilled KV caches tanks
+accuracy. The usual explanation is "attention sinks" and lost cross-document
+attention, and the usual fixes are expensive -- recomputing parts of the cache
+online, fine-tuning the model, or training extra "link" tokens to glue documents
+together. All of these cost either latency or GPU-hours, and none of them really
+explain *why* they work.
+
+In our new paper, "KVPrior: On the Surprising Effectiveness of Marginalizing
+KVCaches over Prefixes" (MIT-IBM Watson AI Lab), we dug into this and found
+something simpler going on: each individually-prefilled cache is implicitly
+conditioned on *one specific prefix* -- usually the empty one, or just a BOS
+token. That's a biased, not a representative, snapshot of the document.
+
+So instead of training anything, we just... average it out. KVPrior prefills
+each document behind a handful of random, irrelevant prefixes, discards the
+prefix tokens, and averages the resulting caches. Under the (Bayesian)
+assumption that retrieved documents are roughly independent, this estimates the
+*prefix-marginal* cache -- the representation the document "should" have had
+regardless of what happened to precede it. No recomputation, no fine-tuning, no
+auxiliary embeddings, and it works with as few as 4-8 sampled prefixes.
+
+The results surprised us too:
+
+- On tasks where documents genuinely are independent (Biography,
+  Needle-in-a-Haystack), KVPrior nearly recovers full-prefill accuracy and beats
+  existing trained/recomputation-based methods.
+
+- On multi-hop reasoning benchmarks (HotpotQA, Musique, 2WikiQA), where
+  documents really do depend on each other, the gains are more modest -- but
+  KVPrior stacks cleanly on top of existing recomputation methods, pushing them
+  to new state-of-the-art results.
+
+- It also generalizes to out-of-distribution prefixes far better than trained
+  alternatives like KVLink, which degrade sharply once you leave the
+  training distribution.
+
+We even back this with a bit of theory: a Taylor expansion showing the averaging
+works precisely when the Hessian of the model's next-token function is small in
+the direction of prefix variation -- i.e., when the prefix really is just noise
+relative to the document's own content. We verify this empirically by measuring
+how close KVPrior's output distribution is to the true prefix-marginal
+distribution -- the gap is comparable to the noise introduced by ordinary
+FP8/INT8 quantization.
+
+Sometimes the simplest idea -- "just average over the thing you want to be
+invariant to" -- beats a learned fix, and even tells you something about why the
+learned fix worked in the first place.
+
+Joint work with Bo Wu and Dan Gutfreund at the MIT-IBM Watson AI Lab. Paper and
+code in the comments / link below.
+
+#RAG #LLM #KVCache #MachineLearning #NLP #AIResearch

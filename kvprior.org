@@ -9,6 +9,8 @@ Because transformer KV caches are prefix-dependent.
 A cache computed for "doc A at the start of the prompt" is not the same as "doc A after docs B and C".
 Naively concatenating them (no recompute) causes substantial quality degradation.
 
+[figure explaining above]
+
 Existing fixes recover the quality by recomputing some tokens at inference time,
 fine-tuning the model to produce composable caches, or learning "link tokens" between documents.
 They work, but they cost runtime or training, and the mechanism remains poorly understood.
