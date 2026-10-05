@@ -20,9 +20,9 @@ something simpler going on: each individually-prefilled cache is implicitly
 conditioned on *one specific prefix* -- usually the empty one, or just a BOS
 token. That's a biased, not a representative, snapshot of the document.
 
-So instead of training anything, we just... average it out. KVPrior prefills
+So instead of training anything, we just... average the bias out. KVPrior prefills
 each document behind a handful of random, irrelevant prefixes, discards the
-prefix tokens, and averages the resulting caches. Under the (Bayesian)
+prefix tokens, reset RoPE, and averages the resulting caches. Under the (Bayesian)
 assumption that retrieved documents are roughly independent, this estimates the
 *prefix-marginal* cache -- the representation the document "should" have had
 regardless of what happened to precede it. No recomputation, no fine-tuning, no
