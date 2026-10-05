@@ -8,10 +8,23 @@ obvious fix is to precompute and cache their KV representations once, then just
 reuse them.
 
 The problem: naively concatenating individually-prefilled KV caches harms
-accuracy. The usual explanation is "attention sinks" and lost cross-document
+accuracy because transformer KV caches are prefix-dependent.
+A cache computed for "doc A at the start of the prompt" is not the same as "doc A after docs B and C".
+Naively concatenating them causes substantial quality degradation.
+
+This problem also matters beyond RAG: LLM pipelines and harnesses
+that implement "LLMs inside algorithms", like Mellea (mellea.ai), LangChain, or SGLang,
+constantly reuse the same strings at different positions across calls.
+We already covered their surprising efficiency of such harnesses in the Verbalized Algorithm (VAs) post,
+but runtime complexity of VAs are still affected by this prefix-only cache assumptions.
+
+[figure explaining indiv prefill]
+
+The usual explanation for the degradation is "attention sinks" and lost cross-document
 attention, and the usual fixes are expensive -- recomputing parts of the cache
 online, fine-tuning the model, or training extra "link" tokens to glue documents
-together. All of these cost either latency or GPU-hours, and none of them really
+together and recover cross-attention.
+All of these cost either latency or GPU-hours, and none of them really
 explain *why* they work.
 
 In our new paper, "KVPrior: On the Surprising Effectiveness of Marginalizing
@@ -20,15 +33,30 @@ something simpler going on: each individually-prefilled cache is implicitly
 conditioned on *one specific prefix* -- usually the empty one, or just a BOS
 token. That's a biased, not a representative, snapshot of the document.
 
+[figure explaining kvprior]
+
 So instead of training anything, we just... average the bias out. KVPrior prefills
 each document behind a handful of random, irrelevant prefixes, discards the
-prefix tokens, reset RoPE, and averages the resulting caches. Under the (Bayesian)
+prefix tokens, reset RoPE, and averages the resulting caches. Under the
 assumption that retrieved documents are roughly independent, this estimates the
 *prefix-marginal* cache -- the representation the document "should" have had
-regardless of what happened to precede it. No recomputation, no fine-tuning, no
-auxiliary embeddings, and it works with as few as 4-8 sampled prefixes.
+regardless of what happened to precede it.
+*That's it. We call it KVPrior.* Training-free, zero inference overhead,
+and it works with as few as 4-8 sampled prefixes.
+Averaging leaves only what is common across random contexts, i.e., the document itself.
+The attention sinks are gone, closely resembling full prefill.
 
-The results surprised us too:
+[figure showing attention sinks]
+
+Why "Prior"? Because it is a Bayesian story.
+We assume, as a prior, that retrieved documents contribute independently (a mean-field assumption).
+One may think individual prefill already computes p(doc), but it does not:
+it computes p(doc | BOS or empty prefix), which is a biased sample.
+KVPrior instead estimates the marginal over arbitrary prefixes of arbitrary lengths.
+When the prior is wrong (e.g., multi-hop reasoning),
+cache recomputation becomes the posterior update.
+
+The RAG performance surprised us too:
 
 - On tasks where documents genuinely are independent (Biography,
   Needle-in-a-Haystack), KVPrior nearly recovers full-prefill accuracy and beats
@@ -43,13 +71,19 @@ The results surprised us too:
   alternatives like KVLink, which degrade sharply once you leave the
   training distribution.
 
-We even back this with a bit of theory: a Taylor expansion showing the averaging
+[figure showing attention sinks]
+
+Averaging caches is not the same as averaging output distributions, though.
+A Taylor expansion shows the averaging
 works precisely when the Hessian of the model's next-token function is small in
 the direction of prefix variation -- i.e., when the prefix really is just noise
-relative to the document's own content. We verify this empirically by measuring
+relative to the document's own content.
+We verify this empirically by measuring
 how close KVPrior's output distribution is to the true prefix-marginal
 distribution -- the gap is comparable to the noise introduced by ordinary
 FP8/INT8 quantization.
+
+[table showing the gap]
 
 Sometimes the simplest idea -- "just average over the thing you want to be
 invariant to" -- beats a learned fix, and even tells you something about why the
