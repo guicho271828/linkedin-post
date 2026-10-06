@@ -24,7 +24,7 @@ all:    $(shell find . -name "*.svg" | sed -e s/svg/xbb/g ) \
 # %.pdf : %.svg
 # 	inkscape -f $(CURDIR)/$< -A $(CURDIR)/$*.pdf -d 150 || inkscape -o $(CURDIR)/$*.pdf -d 150 $(CURDIR)/$<
 %.png : %.svg
-	inkscape -f $(CURDIR)/$< -A $(CURDIR)/$*.png -d 150 || inkscape -o $(CURDIR)/$*.png -d 150 $(CURDIR)/$<
+	inkscape -f $(CURDIR)/$< -A $(CURDIR)/$*.png -d 150 || inkscape -o $(CURDIR)/$*.png -d 150 --export-overwrite --export-background-opacity=1.0 --export-background=white $(CURDIR)/$<
 #	convert $< $*.png
 #	if you want to use imagemagick, comment out 'inkscape...' and use 'convert...'
 
